@@ -1,0 +1,147 @@
+#actual
+import numpy as np
+import matplotlib
+import matplotlib.pyplot as plt
+import random
+import math
+
+#function used to calculate distance
+def dist(q1,q2):
+  d = math.sqrt((q1[0]-q2[0])**2 + (q1[1]-q2[1])**2)
+  return d
+
+# function used to move towards qn with maximum step size of stp
+def move(qr, qn, val, stp):
+  qnew = [0, 0]
+  
+  # val is the distance between q_rand and nearest node (q_near)
+  if val >= stp:
+    qnew[0] = qn[0] + ((qr[0]-qn[0]*stp)/dist(qr,qn))
+    qnew[1] = qn[1] + ((qr[1]-qn[0]*stp)/dist(qr,qn))
+  else:
+    qnew[0] = qr[0]
+    qnew[1] = qr[1]
+  #end   
+  A = [qnew[0], qnew[1]]
+  return A
+
+#if points A B and C are joined then is the rotation cloclwise or anticlockwise
+def ccw(A,B,C):
+#A,B,C position vectors with x and y  coordinates
+    
+    val = (C[1]-A[1]) * (B[0]-A[0]) > (B[1]-A[1]) * (C[0]-A[0])
+    return val
+
+# functioon to find weather a line passes through an obstacle or not
+def noCollision(n2, n1, o):
+  #n2- end point of line, n1- start point of line, o - obstacle
+  A = [n1[0], n1[1]]
+  B = [n2[0], n2[1]]
+  obs = [o[0], o[1] ,o[0]+o[2], o[1]+o[3]] 
+  C1 = [obs[0],obs[1]]
+  D1 = [obs[0],obs[3]]
+  C2 = [obs[0],obs[1]]
+  D2 = [obs[2],obs[1]]
+  C3 = [obs[2],obs[3]] 
+  D3 = [obs[2],obs[1]] #D2
+  C4 = [obs[2],obs[3]] #C3
+  D4 = [obs[0],obs[3]] #D1
+  #Check if path from n1 to n2 intersects any of the four edges of the obstacle
+  ints1 = ccw(A,C1,D1) != ccw(B,C1,D1) and ccw(A,B,C1) != ccw(A,B,D1) # A ~= B returns 0 if A=B else returns 1.
+  ints2 = ccw(A,C2,D2) != ccw(B,C2,D2) and ccw(A,B,C2) != ccw(A,B,D2) # so, all these statements are true when 1~=2 and 3~=4, rest always 0
+  ints3 = ccw(A,C3,D3) != ccw(B,C3,D3) and ccw(A,B,C3) != ccw(A,B,D3) # means A and B not form the same rotational direction with C3, D3 
+  ints4 = ccw(A,C4,D4) != ccw(B,C4,D4) and ccw(A,B,C4) != ccw(A,B,D4)
+  #[xi,yi] = polyxpoly(x,y,xbox,ybox);
+  if ints1==0 and ints2==0 and ints3==0 and ints4==0:
+      nc = 1 #no collision happens, when all the pairs have the same ccw value
+  else:
+      nc = 0
+  return nc
+#end    
+
+    
+fig = plt.figure()
+ax = fig.add_subplot(111)
+
+#defining arena and obstacle position
+x_max = 100
+y_max = 100
+obstacle = matplotlib.patches.Rectangle((20, 10), 4, 2,color ='green') # ((x,y coordinate of the left bottom corner), width length, height length,color ='value')
+stp = 20   # Max step size limit
+numNodes = 3000    #maximum number of nodes    
+
+class q_starts:
+  coord = [0 ,0] # start pose
+  cost = 0
+  parent = 0
+
+class q_goal:
+  coord = [40, 40] # goal pose
+  cost = 0
+
+class q_new:
+  coord = [0,0] # new node
+
+class q_near:
+  coord = [0 ,0] # initialised
+  cost = 0  
+
+class nodes:
+  coord = [0 ,0],[0 ,0] # start pose
+
+#class n:
+#  coord = [0 ,0] # start pose  
+
+n_coord = []
+
+plt.xlim([0, x_max])
+plt.ylim([0, y_max])  
+
+ax.add_patch(obstacle);   # plotting the obstacles                                                                      
+plt.plot(q_goal.coord[0] ,q_goal.coord[1] ,'-o',color='blue'); # plotting the goal points 
+#plt.show() #function to show the plot
+
+for i in range(1,numNodes+1): 
+    q_rand = [round((random.uniform(0, 1))*x_max), round((random.uniform(0, 1))*y_max)]  #floor(X) rounds the elements of X to the nearest integer towards minus infinity. %rand(1) generates values between 0 and 1.   
+    
+    # Stop if goal node is already reached
+    for j in range(0,len(nodes.coord)):
+        if nodes.coord[j] == q_goal.coord:  #nodes is a structure with subparts of coordinate, cost, parentheh node
+            break
+            
+    # Finding the closest node to the new one from existing list of nodes  
+    ndist = [];
+    for j in range(0,len(nodes.coord)):
+        n_coord = nodes.coord[j]
+        tmp = dist(n_coord, q_rand)
+        ndist = np.append(ndist, tmp)  # ndist array of distances of new node to all previous nodes
+    #converting ndist to c which is a proper list for the function index to work.
+    cols = len(ndist)
+    c = ([0]*cols)
+    for i in range(0,len(ndist)):
+      c[i] = ndist[i]
+    #after loop ends
+    val = min(c); #chosing the minimum cost distance,
+    idx = c. index(val)  #and storing its index value in idx 
+    q_near = nodes.coord[idx] # idx th node is the final parent node of the new random node made now.
+    q_new.coord = move(q_rand, q_near.coord, val, stp)  
+
+    if noCollision(q_rand, q_near.coord, obstacle):  #Method1
+    #if Final_Collision(q_rand, q_near.coord, obstacle)==1:  #Method2
+        plt.plot([q_near.coord(1), q_new.coord(1)], [q_near.coord(2), q_new.coord(2)])
+        q_new.cost = dist(q_new.coord, q_near.coord) + q_near.cost
+              
+        # Storing parent node of the new node
+        for j in range(0,len(nodes.coord)):
+            if nodes[j].coord == q_near.coord:
+                q_new.parent = j
+            #end
+        #end
+        
+        # Append to nodes list with the new node
+        #nodes = [nodes q_new];
+        nodes = np.append(nodes, q_new) 
+
+        q_near.cost = q_new.cost;
+    #end
+#end 
